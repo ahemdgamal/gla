@@ -110,15 +110,15 @@
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-storage.js";
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyDZZGFzfqGdS1xt276jpDrT18mhFhWgIf8",
-        authDomain: "glamour-831f8.firebaseapp.com",
-        projectId: "glamour-831f8",
-        storageBucket: "glamour-831f8.firebasestorage.app",
-        messagingSenderId: "276384349032",
-        appId: "1:276384349032:web:0b8885f570be09de5f34dd",
-        measurementId: "G-PF7C6S6DLC"
-    };
+const firebaseConfig = {
+    apiKey: "AIzaSyDZZGFzfqGdS1xt276jpDrT18mhFhWgIf8",
+    authDomain: "glamour-831f8.firebaseapp.com",
+    projectId: "glamour-831f8",
+    storageBucket: "glamour-831f8.appspot.com", // 👈 الصح
+    messagingSenderId: "276384349032",
+    appId: "1:276384349032:web:0b8885f570be09de5f34dd",
+    measurementId: "G-PF7C6S6DLC"
+};
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
