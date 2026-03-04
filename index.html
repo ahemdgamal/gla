@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glamour Accessories - Full System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- CSS الموحد --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Playfair Display', serif; background: #fdfaf6; color: #3b2b2b; transition: 0.3s; }
+        header { display: flex; justify-content: space-between; align-items: center; padding: 20px 60px; background: #3b2b2b; position: sticky; top: 0; z-index: 1000; }
+        .logo-text { color: #d4af37; font-size: 24px; font-weight: bold; text-decoration: none; cursor: pointer; }
+        nav a { color: #d4af37; margin-left: 25px; text-decoration: none; font-weight: bold; cursor: pointer; font-size: 14px; }
+        .section { display: none; padding: 20px; min-height: 80vh; }
+        .active { display: block; }
+
+        /* Hero */
+        .hero { text-align: center; padding: 100px 20px; background: #3b2b2b; color: white; }
+        .hero h1 { font-size: 3rem; margin-bottom: 10px; }
+
+        /* Products Grid */
+        .products-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; padding: 40px; }
+        .product-card { background: white; padding: 15px; border: 1px solid #eee; text-align: center; position: relative; cursor: pointer; transition: 0.3s; }
+        .product-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .product-card img { width: 100%; height: 250px; object-fit: cover; margin-bottom: 15px; }
+        .badge { position: absolute; top: 10px; left: 10px; background: #d4af37; color: white; padding: 5px 10px; font-size: 10px; font-weight: bold; }
+        .price { color: #d4af37; font-weight: bold; font-size: 1.2rem; }
+        .old-price { text-decoration: line-through; color: #aaa; font-size: 0.9rem; margin-left: 5px; }
+
+        /* Forms */
+        .login-box, .admin-form { max-width: 400px; margin: 50px auto; background: white; padding: 30px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border-radius: 4px; }
+        h2 { margin-bottom: 20px; text-align: center; color: #3b2b2b; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; outline: none; }
+        button { width: 100%; padding: 14px; background: #3b2b2b; color: white; border: none; cursor: pointer; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; transition: 0.3s; }
+        button:hover { background: #d4af37; color: #3b2b2b; }
+
+        /* Admin Management */
+        .admin-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; background: white; margin-bottom: 5px; }
+        .admin-item button { width: auto; background: #c0392b; padding: 5px 15px; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo-text" onclick="showSection('home')">GLAMOUR</div>
+    <nav>
+        <a onclick="showSection('home')">Home</a>
+        <a id="navLogin" onclick="showSection('login')">Login</a>
+        <a id="navAdmin" onclick="showSection('admin')" style="display:none;">Admin</a>
+        <a id="navLogout" style="display:none;">Logout</a>
+    </nav>
+</header>
+
+<div id="home" class="section active">
+    <section class="hero">
+        <h1>Luxury Accessories</h1>
+        <p>Elegant • Premium • Glamour</p>
+    </section>
+    <div id="productsDisplay" class="products-grid"></div>
+</div>
+
+<div id="login" class="section">
+    <div class="login-box">
+        <h2>Login</h2>
+        <input type="email" id="loginEmail" placeholder="Email (glamour@gmail.com)">
+        <input type="password" id="loginPass" placeholder="Password">
+        <button id="btnLoginAction">Login</button>
+        <p style="margin-top:20px; text-align:center; cursor:pointer; font-size: 14px;" id="btnRegisterAction">Don't have an account? Create one</p>
+    </div>
+</div>
+
+<div id="admin" class="section">
+    <div class="admin-form">
+        <h2>Admin Panel</h2>
+        <input type="text" id="pName" placeholder="Product Name">
+        <input type="text" id="pDesc" placeholder="Description">
+        <input type="number" id="pPrice" placeholder="Price">
+        <input type="number" id="pOldPrice" placeholder="Old Price">
+        <input type="text" id="pImage" placeholder="Image URL">
+        <label style="font-size: 14px;"><input type="checkbox" id="pIsNew"> New Product?</label>
+        <button id="btnAddProduct" style="margin-top: 15px;">Add Product</button>
+    </div>
+    <div id="adminProductsList" style="max-width: 600px; margin: 30px auto;"></div>
+</div>
+
+<div id="productDetail" class="section">
+    <div id="detailContent" style="max-width: 900px; margin: 50px auto; display: flex; gap: 40px; background: white; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+
+    // الكونفيج الحقيقي الخاص بك المستخرج من ملفاتك
+    const firebaseConfig = {
+        apiKey: "AIzaSyDZZGFzfqGdS1xt276jpDrT18mhFhWgIf8",
+        authDomain: "glamour-831f8.firebaseapp.com",
+        projectId: "glamour-831f8",
+        storageBucket: "glamour-831f8.firebasestorage.app",
+        messagingSenderId: "276384349032",
+        appId: "1:276384349032:web:0b8885f570be09de5f34dd",
+        measurementId: "G-PF7C6S6DLC"
+    };
+
+    // Initialization
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    const adminEmail = "glamour@gmail.com";
+
+    // --- Navigation System ---
+    window.showSection = (id) => {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        const target = document.getElementById(id);
+        if(target) target.classList.add('active');
+        
+        if(id === 'home') loadProducts();
+        if(id === 'admin') loadAdminProducts();
+        window.scrollTo(0,0);
+    };
+
+    // --- Auth State Monitor ---
+    onAuthStateChanged(auth, (user) => {
+        const navLogin = document.getElementById("navLogin");
+        const navLogout = document.getElementById("navLogout");
+        const navAdmin = document.getElementById("navAdmin");
+
+        if (user) {
+            navLogin.style.display = "none";
+            navLogout.style.display = "inline";
+            if (user.email === adminEmail) {
+                navAdmin.style.display = "inline";
+            }
+        } else {
+            navLogin.style.display = "inline";
+            navLogout.style.display = "none";
+            navAdmin.style.display = "none";
+        }
+    });
+
+    // --- Auth Functions ---
+    document.getElementById("btnLoginAction").onclick = async () => {
+        const email = document.getElementById("loginEmail").value;
+        const pass = document.getElementById("loginPass").value;
+        try {
+            await signInWithEmailAndPassword(auth, email, pass);
+            alert("Login Successful!");
+            showSection('home');
+        } catch (e) { 
+            alert("Error: " + e.message); 
+        }
+    };
+
+    document.getElementById("btnRegisterAction").onclick = async () => {
+        const email = document.getElementById("loginEmail").value;
+        const pass = document.getElementById("loginPass").value;
+        if(!email || !pass) return alert("Please fill all fields");
+        try {
+            await createUserWithEmailAndPassword(auth, email, pass);
+            alert("Account Created Successfully!");
+        } catch (e) { alert(e.message); }
+    };
+
+    document.getElementById("navLogout").onclick = () => {
+        signOut(auth).then(() => {
+            alert("Logged out");
+            showSection('home');
+        });
+    };
+
+    // --- Product Functions ---
+    async function loadProducts() {
+        const container = document.getElementById("productsDisplay");
+        container.innerHTML = "<p style='text-align:center; grid-column: 1/-1;'>Loading products...</p>";
+        try {
+            const querySnapshot = await getDocs(collection(db, "products"));
+            container.innerHTML = "";
+            querySnapshot.forEach((docSnap) => {
+                const p = docSnap.data();
+                container.innerHTML += `
+                    <div class="product-card" onclick="viewProduct('${docSnap.id}')">
+                        ${p.isNew ? '<div class="badge">NEW</div>' : ''}
+                        <img src="${p.image || 'https://via.placeholder.com/250'}" onerror="this.src='https://via.placeholder.com/250'">
+                        <h3>${p.name}</h3>
+                        <p class="price">${p.price} EGP ${p.oldPrice ? `<span class="old-price">${p.oldPrice} EGP</span>` : ''}</p>
+                        <button style="margin-top:10px; padding: 10px;">Details</button>
+                    </div>
+                `;
+            });
+        } catch(e) { container.innerHTML = "Error loading products: " + e.message; }
+    }
+
+    window.viewProduct = async (id) => {
+        try {
+            const snap = await getDoc(doc(db, "products", id));
+            if(!snap.exists()) return;
+            const p = snap.data();
+            const detail = document.getElementById("detailContent");
+            detail.innerHTML = `
+                <img src="${p.image || 'https://via.placeholder.com/400'}" style="width:45%; height: 400px; object-fit: cover;">
+                <div style="flex: 1;">
+                    <h2 style="text-align: left; margin-bottom: 10px;">${p.name}</h2>
+                    <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">${p.description}</p>
+                    <h3 class="price" style="font-size: 2rem; margin-bottom: 20px;">${p.price} EGP</h3>
+                    <button onclick="alert('Redirecting to Paymob...')">Buy Now</button>
+                    <button onclick="showSection('home')" style="background: #eee; color: #333; margin-top: 10px;">Back to Shop</button>
+                </div>
+            `;
+            showSection('productDetail');
+        } catch(e) { alert(e.message); }
+    };
+
+    // --- Admin Functions ---
+    document.getElementById("btnAddProduct").onclick = async () => {
+        const name = document.getElementById("pName").value;
+        const price = document.getElementById("pPrice").value;
+        if(!name || !price) return alert("Name and Price are required");
+
+        try {
+            await addDoc(collection(db, "products"), {
+                name: name,
+                description: document.getElementById("pDesc").value,
+                price: Number(price),
+                oldPrice: Number(document.getElementById("pOldPrice").value) || 0,
+                image: document.getElementById("pImage").value,
+                isNew: document.getElementById("pIsNew").checked,
+                createdAt: new Date()
+            });
+            alert("Product Added!");
+            loadAdminProducts();
+        } catch(e) { alert(e.message); }
+    };
+
+    async function loadAdminProducts() {
+        const container = document.getElementById("adminProductsList");
+        container.innerHTML = "<h3>Inventory Management</h3>";
+        const querySnapshot = await getDocs(collection(db, "products"));
+        querySnapshot.forEach((docSnap) => {
+            const p = docSnap.data();
+            const item = document.createElement('div');
+            item.className = 'admin-item';
+            item.innerHTML = `
+                <span><strong>${p.name}</strong> - ${p.price} EGP</span>
+                <button data-id="${docSnap.id}" class="btn-del">Delete</button>
+            `;
+            item.querySelector('.btn-del').onclick = () => deleteProduct(docSnap.id);
+            container.appendChild(item);
+        });
+    }
+
+    async function deleteProduct(id) {
+        if(confirm("Confirm deletion?")) {
+            await deleteDoc(doc(db, "products", id));
+            loadAdminProducts();
+        }
+    }
+
+    // Initial Load
+    loadProducts();
+</script>
+</body>
+</html>
